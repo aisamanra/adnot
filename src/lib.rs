@@ -82,6 +82,10 @@ struct Parser<I: Iterator<Item = char>> {
     source: Option<String>,
 }
 
+fn is_special(c: char) -> bool {
+    c == '[' || c == ']' || c == '(' || c == ')' || c == '{' || c == '}' || c == '#'
+}
+
 fn digit_to_num(c: char) -> i64 {
     match c {
         '0' => 0,
@@ -190,13 +194,13 @@ impl<I: Iterator<Item = char>> Parser<I> {
             if s.is_digit(base) {
                 let _ = self.next_char();
                 num = (num * base as i64) + digit_to_num(s);
-            } else if s.is_whitespace() || s == ']' || s == ')' || s == '}' {
+            } else if s.is_whitespace() || is_special(s) {
                 break;
             } else if s == '_' {
                 // continue and ignore
                 let _ = self.next_char();
             } else {
-                return self.err(format!("Invalid numeric literal: {}", s));
+                return self.err(format!("Invalid character in number: {}", s));
             }
         }
         Ok(Value::Int(num))
@@ -207,8 +211,10 @@ impl<I: Iterator<Item = char>> Parser<I> {
             if s.is_alphanumeric() || s == '_' {
                 let _ = self.next_char();
                 buf.push(s);
-            } else {
+            } else if s.is_whitespace() || is_special(s) {
                 break;
+            } else {
+                return self.err(format!("Invalid character in string: {}", s));
             }
         }
         Ok(Value::String(buf))
