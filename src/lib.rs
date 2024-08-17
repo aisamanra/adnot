@@ -122,32 +122,33 @@ impl<I: Iterator<Item = char>> Parser<I> {
     fn parse_value(&mut self) -> Result<Value, AdnotError> {
         match self.next_char() {
             Some('[') => self.parse_list(),
-            Some(c) if c.is_digit(10) => {
-                // we want to handle non-base-10 numbers
+            Some('0') =>
                 match self.peek_char() {
                     Some('X' | 'x') => {
                         let _ = self.next_char();
-                        self.parse_number(digit_to_num(c), 16)
+                        self.parse_number(0, 16)
                     }
                     Some('Z' | 'z') => {
                         let _ = self.next_char();
-                        self.parse_number(digit_to_num(c), 12)
+                        self.parse_number(0, 12)
                     }
                     Some('D' | 'd') => {
                         let _ = self.next_char();
-                        self.parse_number(digit_to_num(c), 10)
+                        self.parse_number(0, 10)
                     }
                     Some('O' | 'o') => {
                         let _ = self.next_char();
-                        self.parse_number(digit_to_num(c), 8)
+                        self.parse_number(0, 8)
                     }
                     Some('B' | 'b') => {
                         let _ = self.next_char();
-                        self.parse_number(digit_to_num(c), 2)
+                        self.parse_number(0, 2)
                     }
-                    _ => self.parse_number(digit_to_num(c), 10),
+                    _ => self.parse_number(0, 10),
                 }
-            }
+
+            Some(c) if c.is_digit(10) =>
+                self.parse_number(digit_to_num(c), 10),
             c => self.err(format!("Unimplemented: {:?}", c)),
         }
     }
