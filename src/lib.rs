@@ -13,7 +13,12 @@ pub enum Value {
 
 pub type Array = Vec<Value>;
 
-pub type Loc = (u64, u64);
+#[derive(Debug)]
+pub struct Loc {
+    row: u64,
+    col: u64,
+    src: Option<String>,
+}
 
 #[derive(Debug)]
 pub struct AdnotError {
@@ -21,7 +26,27 @@ pub struct AdnotError {
     pub loc: Loc,
 }
 
+impl std::fmt::Display for AdnotError {
+    fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
+        if let Some(filename) = &self.loc.src {
+            writeln!(fmt, "{}[{}:{}]: {}", filename, self.loc.row, self.loc.col, self.message)
+        } else {
+            writeln!(fmt, "[{}:{}]: {}", self.loc.row, self.loc.col, self.message)
+        }
+    }
+}
+
 impl Value {
+    pub fn from_str(s: &str) -> Result<Value, AdnotError> {
+        Parser {
+            iter: s.chars().peekable(),
+            row: 0,
+            col: 0,
+            source: None,
+        }
+        .parse()
+    }
+
     pub fn from_string(s: impl Into<String>) -> Result<Value, AdnotError> {
         Parser {
             iter: s.into().chars().peekable(),
@@ -30,10 +55,6 @@ impl Value {
             source: None,
         }
         .parse()
-    }
-
-    pub fn from_file(f: impl Into<std::path::PathBuf>) -> Result<Value, AdnotError> {
-        panic!("unimplemented")
     }
 
     pub fn from_iter(i: impl Iterator<Item = char>) -> Result<Value, AdnotError> {
@@ -93,8 +114,12 @@ impl<I: Iterator<Item = char>> Parser<I> {
         c
     }
 
-    fn loc(&self) -> (u64, u64) {
-        (self.row, self.col)
+    fn loc(&self) -> Loc {
+        Loc {
+            row: self.row,
+            col: self.col,
+            src: self.source.clone(),
+        }
     }
 
     fn err(&self, message: String) -> Result<Value, AdnotError> {
