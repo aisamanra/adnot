@@ -44,7 +44,7 @@ impl std::fmt::Display for AdnotError {
 }
 
 impl Value {
-    pub fn from_str(s: &str) -> Result<Value, AdnotError> {
+    pub fn parse_str(s: &str) -> Result<Value, AdnotError> {
         Parser {
             iter: s.chars().peekable(),
             row: 0,
@@ -54,7 +54,7 @@ impl Value {
         .parse()
     }
 
-    pub fn from_string(s: impl Into<String>) -> Result<Value, AdnotError> {
+    pub fn parse_string(s: impl Into<String>) -> Result<Value, AdnotError> {
         Parser {
             iter: s.into().chars().peekable(),
             row: 0,
@@ -64,7 +64,7 @@ impl Value {
         .parse()
     }
 
-    pub fn from_iter(i: impl Iterator<Item = char>) -> Result<Value, AdnotError> {
+    pub fn parse_iter(i: impl Iterator<Item = char>) -> Result<Value, AdnotError> {
         Parser {
             iter: i.peekable(),
             row: 0,
@@ -135,7 +135,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
 
     fn err<T>(&self, message: String) -> Result<T, AdnotError> {
         Err(AdnotError {
-            message: message,
+            message,
             loc: self.loc(),
         })
     }
@@ -183,7 +183,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
                 _ => self.parse_number(0, 10),
             },
 
-            Some(c) if c.is_digit(10) => self.parse_number(digit_to_num(c), 10),
+            Some(c) if c.is_ascii_digit() => self.parse_number(digit_to_num(c), 10),
             Some(c) if c.is_alphabetic() => self.parse_bare_word(String::from(c)),
             c => self.err(format!("Unimplemented: {:?}", c)),
         }

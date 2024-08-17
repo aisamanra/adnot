@@ -3,19 +3,19 @@ use crate::*;
 #[test]
 fn it_parses_an_empty_array() {
     let stuff = "[]";
-    assert_eq!(Value::List(Vec::new()), Value::from_string(stuff).unwrap());
+    assert_eq!(Value::List(Vec::new()), Value::parse_string(stuff).unwrap());
 }
 
 #[test]
 fn it_parses_an_empty_array_with_spaces() {
     let stuff = " [ ] ";
-    assert_eq!(Value::List(Vec::new()), Value::from_string(stuff).unwrap());
+    assert_eq!(Value::List(Vec::new()), Value::parse_string(stuff).unwrap());
 }
 
 #[test]
 fn it_parses_an_empty_array_with_comments() {
     let stuff = "\n# before\n[\n  # in between\n]\n# after \n";
-    assert_eq!(Value::List(Vec::new()), Value::from_string(stuff).unwrap());
+    assert_eq!(Value::List(Vec::new()), Value::parse_string(stuff).unwrap());
 }
 
 #[test]
@@ -23,7 +23,7 @@ fn it_parses_nested_empty_arrays() {
     let stuff = " [ [] ] ";
     assert_eq!(
         Value::List(vec![Value::List(Vec::new())]),
-        Value::from_string(stuff).unwrap()
+        Value::parse_string(stuff).unwrap()
     );
 }
 
@@ -32,7 +32,7 @@ fn it_parses_a_number() {
     let stuff = "[2 33 31337]";
     assert_eq!(
         Value::List(vec![Value::Int(2), Value::Int(33), Value::Int(31337)]),
-        Value::from_string(stuff).unwrap()
+        Value::parse_string(stuff).unwrap()
     );
 }
 
@@ -51,7 +51,7 @@ fn parses_numbers_of_various_bases() {
             Value::Int(2),
             Value::Int(3)
         ]),
-        Value::from_string(stuff).unwrap()
+        Value::parse_string(stuff).unwrap()
     );
 }
 
@@ -63,7 +63,7 @@ fn it_parses_bare_words() {
             Value::String("foo".into()),
             Value::String("bar_baz".into()),
         ]),
-        Value::from_string(stuff).unwrap()
+        Value::parse_string(stuff).unwrap()
     );
 }
 
@@ -75,7 +75,7 @@ fn it_parses_string_literals() {
             Value::String("foo".into()),
             Value::String("bar_baz".into()),
         ]),
-        Value::from_string(stuff).unwrap()
+        Value::parse_string(stuff).unwrap()
     );
 }
 
@@ -87,6 +87,6 @@ fn it_parses_string_literals_with_escapes() {
             Value::String("\n".into()),
             Value::String("foo\"bar".into()),
         ]),
-        Value::from_string(stuff).unwrap()
+        Value::parse_string(stuff).unwrap()
     );
 }
