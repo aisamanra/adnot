@@ -32,7 +32,11 @@ pub struct AdnotError {
 impl std::fmt::Display for AdnotError {
     fn fmt(&self, fmt: &mut std::fmt::Formatter) -> Result<(), std::fmt::Error> {
         if let Some(filename) = &self.loc.src {
-            writeln!(fmt, "{}[{}:{}]: {}", filename, self.loc.row, self.loc.col, self.message)
+            writeln!(
+                fmt,
+                "{}[{}:{}]: {}",
+                filename, self.loc.row, self.loc.col, self.message
+            )
         } else {
             writeln!(fmt, "[{}:{}]: {}", self.loc.row, self.loc.col, self.message)
         }
@@ -151,35 +155,32 @@ impl<I: Iterator<Item = char>> Parser<I> {
         match self.next_char() {
             Some('[') => self.parse_list(),
             Some('"') => self.parse_string_literal(),
-            Some('0') =>
-                match self.peek_char() {
-                    Some('X' | 'x') => {
-                        let _ = self.next_char();
-                        self.parse_number(0, 16)
-                    }
-                    Some('Z' | 'z') => {
-                        let _ = self.next_char();
-                        self.parse_number(0, 12)
-                    }
-                    Some('D' | 'd') => {
-                        let _ = self.next_char();
-                        self.parse_number(0, 10)
-                    }
-                    Some('O' | 'o') => {
-                        let _ = self.next_char();
-                        self.parse_number(0, 8)
-                    }
-                    Some('B' | 'b') => {
-                        let _ = self.next_char();
-                        self.parse_number(0, 2)
-                    }
-                    _ => self.parse_number(0, 10),
+            Some('0') => match self.peek_char() {
+                Some('X' | 'x') => {
+                    let _ = self.next_char();
+                    self.parse_number(0, 16)
                 }
+                Some('Z' | 'z') => {
+                    let _ = self.next_char();
+                    self.parse_number(0, 12)
+                }
+                Some('D' | 'd') => {
+                    let _ = self.next_char();
+                    self.parse_number(0, 10)
+                }
+                Some('O' | 'o') => {
+                    let _ = self.next_char();
+                    self.parse_number(0, 8)
+                }
+                Some('B' | 'b') => {
+                    let _ = self.next_char();
+                    self.parse_number(0, 2)
+                }
+                _ => self.parse_number(0, 10),
+            },
 
-            Some(c) if c.is_digit(10) =>
-                self.parse_number(digit_to_num(c), 10),
-            Some(c) if c.is_alphabetic() =>
-                self.parse_bare_word(String::from(c)),
+            Some(c) if c.is_digit(10) => self.parse_number(digit_to_num(c), 10),
+            Some(c) if c.is_alphabetic() => self.parse_bare_word(String::from(c)),
             c => self.err(format!("Unimplemented: {:?}", c)),
         }
     }
@@ -214,17 +215,15 @@ impl<I: Iterator<Item = char>> Parser<I> {
     }
 
     fn parse_escape(&mut self) -> Result<char, AdnotError> {
-        Ok(
-            match self.next_char() {
-                Some('n') => '\n',
-                Some('t') => '\t',
-                Some('r') => '\r',
-                Some('\\') => '\\',
-                Some('"') => '"',
-                Some(c) => return self.err(format!("Invalid escape: \\{}", c)),
-                None => return self.err("Unexpected end-of-file when parsing string literal".into())
-            }
-        )
+        Ok(match self.next_char() {
+            Some('n') => '\n',
+            Some('t') => '\t',
+            Some('r') => '\r',
+            Some('\\') => '\\',
+            Some('"') => '"',
+            Some(c) => return self.err(format!("Invalid escape: \\{}", c)),
+            None => return self.err("Unexpected end-of-file when parsing string literal".into()),
+        })
     }
 
     fn parse_string_literal(&mut self) -> Result<Value, AdnotError> {
