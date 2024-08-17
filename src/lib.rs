@@ -159,6 +159,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
         match self.next_char() {
             Some('[') => self.parse_list(),
             Some('(') => self.parse_tag(),
+            Some('{') => self.parse_map(),
 
             Some('"') => Ok(Value::String(self.parse_string_literal()?)),
             Some('0') => match self.peek_char() {
@@ -278,6 +279,27 @@ impl<I: Iterator<Item = char>> Parser<I> {
                 return Ok(Value::Sum(tag, values));
             } else {
                 values.push(self.parse_value()?);
+            }
+        }
+    }
+
+    fn parse_map(&mut self) -> Result<Value, AdnotError> {
+        let mut values = HashMap::new();
+        loop {
+            self.skip_whitespace()?;
+            if self.peek_char() == Some(&'}') {
+                let _ = self.next_char();
+                return Ok(Value::Product(values));
+            } else {
+                let raw_key = self.parse_value()?;
+                let key = if let Value::String(k) = raw_key {
+                    k
+                } else {
+                    return self.err(format!("Expected a string key, found {:?}", raw_key));
+                };
+                self.skip_whitespace()?;
+                let val = self.parse_value()?;
+                values.insert(key, val);
             }
         }
     }

@@ -109,3 +109,16 @@ fn it_parses_tags() {
         Value::parse_string(stuff).unwrap()
     );
 }
+
+#[test]
+fn it_parses_map() {
+    let stuff = "{a 1 \"b\" 2 \"another key\" 3}";
+    let mut expected_map = HashMap::new();
+    expected_map.insert("a".into(), Value::Int(1));
+    expected_map.insert("b".into(), Value::Int(2));
+    expected_map.insert("another key".into(), Value::Int(3));
+    assert_eq!(
+        Value::Product(expected_map),
+        Value::parse_string(stuff).unwrap()
+    );
+}
