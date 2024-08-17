@@ -90,3 +90,22 @@ fn it_parses_string_literals_with_escapes() {
         Value::parse_string(stuff).unwrap()
     );
 }
+
+#[test]
+fn it_parses_tags() {
+    let stuff = "[(foo) (bar 42 yes) (\"baz\" 1 2 3)]";
+    assert_eq!(
+        Value::List(vec![
+            Value::Sum("foo".into(), Vec::new()),
+            Value::Sum(
+                "bar".into(),
+                vec![Value::Int(42), Value::String("yes".into()),]
+            ),
+            Value::Sum(
+                "baz".into(),
+                vec![Value::Int(1), Value::Int(2), Value::Int(3),]
+            ),
+        ]),
+        Value::parse_string(stuff).unwrap()
+    );
+}

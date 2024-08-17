@@ -158,7 +158,9 @@ impl<I: Iterator<Item = char>> Parser<I> {
     fn parse_value(&mut self) -> Result<Value, AdnotError> {
         match self.next_char() {
             Some('[') => self.parse_list(),
-            Some('"') => self.parse_string_literal(),
+            Some('(') => self.parse_tag(),
+
+            Some('"') => Ok(Value::String(self.parse_string_literal()?)),
             Some('0') => match self.peek_char() {
                 Some('X' | 'x') => {
                     let _ = self.next_char();
@@ -184,7 +186,9 @@ impl<I: Iterator<Item = char>> Parser<I> {
             },
 
             Some(c) if c.is_ascii_digit() => self.parse_number(digit_to_num(c), 10),
-            Some(c) if c.is_alphabetic() => self.parse_bare_word(String::from(c)),
+            Some(c) if c.is_alphabetic() => {
+                Ok(Value::String(self.parse_bare_word(String::from(c))?))
+            }
             c => self.err(format!("Unimplemented: {:?}", c)),
         }
     }
@@ -206,7 +210,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
         Ok(Value::Int(num))
     }
 
-    fn parse_bare_word(&mut self, mut buf: String) -> Result<Value, AdnotError> {
+    fn parse_bare_word(&mut self, mut buf: String) -> Result<String, AdnotError> {
         while let Some(&s) = self.peek_char() {
             if s.is_alphanumeric() || s == '_' {
                 let _ = self.next_char();
@@ -217,7 +221,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
                 return self.err(format!("Invalid character in string: {}", s));
             }
         }
-        Ok(Value::String(buf))
+        Ok(buf)
     }
 
     fn parse_escape(&mut self) -> Result<char, AdnotError> {
@@ -232,7 +236,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
         })
     }
 
-    fn parse_string_literal(&mut self) -> Result<Value, AdnotError> {
+    fn parse_string_literal(&mut self) -> Result<String, AdnotError> {
         let mut buf = String::new();
         while let Some(s) = self.next_char() {
             match s {
@@ -241,7 +245,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
                 _ => buf.push(s),
             }
         }
-        Ok(Value::String(buf))
+        Ok(buf)
     }
 
     fn parse_list(&mut self) -> Result<Value, AdnotError> {
@@ -251,6 +255,27 @@ impl<I: Iterator<Item = char>> Parser<I> {
             if self.peek_char() == Some(&']') {
                 let _ = self.next_char();
                 return Ok(Value::List(values));
+            } else {
+                values.push(self.parse_value()?);
+            }
+        }
+    }
+
+    fn parse_tag(&mut self) -> Result<Value, AdnotError> {
+        self.skip_whitespace()?;
+        // next item _must_ be a tag string
+        let tag = match self.next_char() {
+            Some('"') => self.parse_string_literal()?,
+            Some(c) if c.is_alphabetic() => self.parse_bare_word(String::from(c))?,
+            Some(c) => return self.err(format!("Unexpected tag character: {}", c)),
+            None => return self.err("Unexpected end of input while parsing tag".into()),
+        };
+        let mut values = Vec::new();
+        loop {
+            self.skip_whitespace()?;
+            if self.peek_char() == Some(&')') {
+                let _ = self.next_char();
+                return Ok(Value::Sum(tag, values));
             } else {
                 values.push(self.parse_value()?);
             }
