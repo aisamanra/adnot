@@ -3,4 +3,12 @@ name = "adnot"
 version = "0.1.0"
 edition = "2021"
 
+[[bin]]
+name = "adnot-regenerate-expectations"
+test = true
+path = "tools/regenerate_expectations.rs"
+
 [dependencies]
+
+[dev-dependencies]
+pretty_assertions = "1.4"

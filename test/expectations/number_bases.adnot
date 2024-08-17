@@ -1,0 +1,7 @@
+[
+  (hexadecimal_numbers 0x0 0x10 0xff 0xdead_beef)
+  (dozenal_numbers     0z0 0z10 0zbb 0zbaba)
+  (decimal_numbers     0d0 0d10 0d99 0d1234_9876)
+  (octal_numbers       0o0 0o10 0o77 0o7654_1234)
+  (binary_numbers      0b0 0b10 0b11 0b1010_0101)
+]

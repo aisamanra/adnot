@@ -37,7 +37,7 @@ fn it_parses_a_number() {
 }
 
 #[test]
-fn parses_numbers_of_various_bases() {
+fn it_parses_numbers_of_various_bases() {
     let stuff = "[0x10 0xff 0z10 0zbb 0d10 0o10 0o77 0b10 0b11]";
     assert_eq!(
         Value::List(vec![

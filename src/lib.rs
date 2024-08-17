@@ -4,6 +4,11 @@ use std::iter::Peekable;
 #[cfg(test)]
 mod test;
 
+#[cfg(test)]
+pub mod exp_test {
+    include!(concat!(env!("OUT_DIR"), "/exp_tests.rs"));
+}
+
 /// A representation of an Adnot value.
 #[derive(Debug, PartialEq)]
 pub enum Value {
