@@ -184,13 +184,18 @@ impl<I: Iterator<Item = char>> Parser<I> {
         }
     }
 
-    fn parse_number(&mut self, mut num: i64, base: i64) -> Result<Value, AdnotError> {
+    fn parse_number(&mut self, mut num: i64, base: u32) -> Result<Value, AdnotError> {
         while let Some(&s) = self.peek_char() {
-            if s.is_digit(10) {
+            if s.is_digit(base) {
                 let _ = self.next_char();
-                num = (num * base) + digit_to_num(s);
-            } else {
+                num = (num * base as i64) + digit_to_num(s);
+            } else if s.is_whitespace() || s == ']' || s == ')' || s == '}' {
                 break;
+            } else if s == '_' {
+                // continue and ignore
+                let _ = self.next_char();
+            } else {
+                return self.err(format!("Invalid numeric literal: {}", s));
             }
         }
         Ok(Value::Int(num))
