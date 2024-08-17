@@ -118,7 +118,7 @@ fn it_parses_map() {
     expected_map.insert("b".into(), Value::Int(2));
     expected_map.insert("another key".into(), Value::Int(3));
     assert_eq!(
-        Value::Product(expected_map),
+        Value::Map(expected_map),
         Value::parse_string(stuff).unwrap()
     );
 }
