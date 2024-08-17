@@ -1,6 +1,9 @@
 use std::collections::hash_map::HashMap;
 use std::iter::Peekable;
 
+#[cfg(test)]
+mod test;
+
 #[derive(Debug, PartialEq)]
 pub enum Value {
     Sum(String, Array),
@@ -122,7 +125,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
         }
     }
 
-    fn err(&self, message: String) -> Result<Value, AdnotError> {
+    fn err<T>(&self, message: String) -> Result<T, AdnotError> {
         Err(AdnotError {
             message: message,
             loc: self.loc(),
@@ -147,6 +150,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
     fn parse_value(&mut self) -> Result<Value, AdnotError> {
         match self.next_char() {
             Some('[') => self.parse_list(),
+            Some('"') => self.parse_string_literal(),
             Some('0') =>
                 match self.peek_char() {
                     Some('X' | 'x') => {
@@ -174,6 +178,8 @@ impl<I: Iterator<Item = char>> Parser<I> {
 
             Some(c) if c.is_digit(10) =>
                 self.parse_number(digit_to_num(c), 10),
+            Some(c) if c.is_alphabetic() =>
+                self.parse_bare_word(String::from(c)),
             c => self.err(format!("Unimplemented: {:?}", c)),
         }
     }
@@ -188,6 +194,44 @@ impl<I: Iterator<Item = char>> Parser<I> {
             }
         }
         Ok(Value::Int(num))
+    }
+
+    fn parse_bare_word(&mut self, mut buf: String) -> Result<Value, AdnotError> {
+        while let Some(&s) = self.peek_char() {
+            if s.is_alphanumeric() || s == '_' {
+                let _ = self.next_char();
+                buf.push(s);
+            } else {
+                break;
+            }
+        }
+        Ok(Value::String(buf))
+    }
+
+    fn parse_escape(&mut self) -> Result<char, AdnotError> {
+        Ok(
+            match self.next_char() {
+                Some('n') => '\n',
+                Some('t') => '\t',
+                Some('r') => '\r',
+                Some('\\') => '\\',
+                Some('"') => '"',
+                Some(c) => return self.err(format!("Invalid escape: \\{}", c)),
+                None => return self.err("Unexpected end-of-file when parsing string literal".into())
+            }
+        )
+    }
+
+    fn parse_string_literal(&mut self) -> Result<Value, AdnotError> {
+        let mut buf = String::new();
+        while let Some(s) = self.next_char() {
+            match s {
+                '"' => break,
+                '\\' => buf.push(self.parse_escape()?),
+                _ => buf.push(s),
+            }
+        }
+        Ok(Value::String(buf))
     }
 
     fn parse_list(&mut self) -> Result<Value, AdnotError> {
@@ -223,61 +267,5 @@ impl<I: Iterator<Item = char>> Parser<I> {
             }
         }
         Ok(())
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn it_parses_an_empty_array() {
-        let stuff = "[]";
-        assert_eq!(Value::List(Vec::new()), Value::from_string(stuff).unwrap());
-    }
-
-    #[test]
-    fn it_parses_an_empty_array_with_spaces() {
-        let stuff = " [ ] ";
-        assert_eq!(Value::List(Vec::new()), Value::from_string(stuff).unwrap());
-    }
-
-    #[test]
-    fn it_parses_an_empty_array_with_comments() {
-        let stuff = "\n# before\n[\n  # in between\n]\n# after \n";
-        assert_eq!(Value::List(Vec::new()), Value::from_string(stuff).unwrap());
-    }
-
-    #[test]
-    fn it_parses_nested_empty_arrays() {
-        let stuff = " [ [] ] ";
-        assert_eq!(
-            Value::List(vec![Value::List(Vec::new())]),
-            Value::from_string(stuff).unwrap()
-        );
-    }
-
-    #[test]
-    fn it_parses_a_number() {
-        let stuff = "[2 33 31337]";
-        assert_eq!(
-            Value::List(vec![Value::Int(2), Value::Int(33), Value::Int(31337)]),
-            Value::from_string(stuff).unwrap()
-        );
-    }
-
-    #[test]
-    fn parses_numbers_of_various_bases() {
-        let stuff = "[0x10 0z10 0d10 0o10 0b10]";
-        assert_eq!(
-            Value::List(vec![
-                Value::Int(16),
-                Value::Int(12),
-                Value::Int(10),
-                Value::Int(8),
-                Value::Int(2)
-            ]),
-            Value::from_string(stuff).unwrap()
-        );
     }
 }
