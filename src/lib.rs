@@ -66,6 +66,12 @@ fn digit_to_num(c: char) -> i64 {
         '7' => 7,
         '8' => 8,
         '9' => 9,
+        'A' | 'a' => 10,
+        'B' | 'b' => 11,
+        'C' | 'c' => 12,
+        'D' | 'd' => 13,
+        'E' | 'e' => 14,
+        'F' | 'f' => 15,
         _ => unreachable!(),
     }
 }
@@ -116,16 +122,41 @@ impl<I: Iterator<Item = char>> Parser<I> {
     fn parse_value(&mut self) -> Result<Value, AdnotError> {
         match self.next_char() {
             Some('[') => self.parse_list(),
-            Some(c) if c.is_digit(10) => self.parse_number(digit_to_num(c)),
+            Some(c) if c.is_digit(10) => {
+                // we want to handle non-base-10 numbers
+                match self.peek_char() {
+                    Some('X' | 'x') => {
+                        let _ = self.next_char();
+                        self.parse_number(digit_to_num(c), 16)
+                    }
+                    Some('Z' | 'z') => {
+                        let _ = self.next_char();
+                        self.parse_number(digit_to_num(c), 12)
+                    }
+                    Some('D' | 'd') => {
+                        let _ = self.next_char();
+                        self.parse_number(digit_to_num(c), 10)
+                    }
+                    Some('O' | 'o') => {
+                        let _ = self.next_char();
+                        self.parse_number(digit_to_num(c), 8)
+                    }
+                    Some('B' | 'b') => {
+                        let _ = self.next_char();
+                        self.parse_number(digit_to_num(c), 2)
+                    }
+                    _ => self.parse_number(digit_to_num(c), 10),
+                }
+            }
             c => self.err(format!("Unimplemented: {:?}", c)),
         }
     }
 
-    fn parse_number(&mut self, mut num: i64) -> Result<Value, AdnotError> {
+    fn parse_number(&mut self, mut num: i64, base: i64) -> Result<Value, AdnotError> {
         while let Some(&s) = self.peek_char() {
             if s.is_digit(10) {
                 let _ = self.next_char();
-                num = (num * 10) + digit_to_num(s);
+                num = (num * base) + digit_to_num(s);
             } else {
                 break;
             }
@@ -205,6 +236,21 @@ mod tests {
         let stuff = "[2 33 31337]";
         assert_eq!(
             Value::List(vec![Value::Int(2), Value::Int(33), Value::Int(31337)]),
+            Value::from_string(stuff).unwrap()
+        );
+    }
+
+    #[test]
+    fn parses_numbers_of_various_bases() {
+        let stuff = "[0x10 0z10 0d10 0o10 0b10]";
+        assert_eq!(
+            Value::List(vec![
+                Value::Int(16),
+                Value::Int(12),
+                Value::Int(10),
+                Value::Int(8),
+                Value::Int(2)
+            ]),
             Value::from_string(stuff).unwrap()
         );
     }
