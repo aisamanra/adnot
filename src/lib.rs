@@ -67,7 +67,17 @@ pub enum Value {
     /// ```
     Int(i64),
 
-    /// A double-precision floating point value. **DOCUMENT ME**
+    /// A double-precision floating point value. Floating point
+    /// numbers must include a dot, and may or may not include an
+    /// exponent. If a number does not include a dot, it will be
+    /// parsed as an integer instead.
+    ///
+    /// ```text
+    /// [
+    ///     100.0
+    ///     1.0e+2
+    /// ]
+    /// ```
     Double(f64),
 
     /// A string. This can be written either as a bare string, which
@@ -274,6 +284,7 @@ impl<I: Iterator<Item = char>> Parser<I> {
             } else if s.is_whitespace() || is_special(s) {
                 break;
             } else if s == '.' {
+                let _ = self.next_char();
                 if base == 10 {
                     return self.parse_float(num as f64);
                 } else {
@@ -291,8 +302,52 @@ impl<I: Iterator<Item = char>> Parser<I> {
 
     // this will pick up after a `.` has been seen, with the
     // before-the-dot part being already cast into an f64 as `whole_part`
-    fn parse_float(&mut self, _whole_part: f64) -> Result<Value, AdnotError> {
-        panic!("unimplemented")
+    fn parse_float(&mut self, whole_part: f64) -> Result<Value, AdnotError> {
+        let mut fractional_part = 0.0;
+        let mut size = 0.1;
+        while let Some(&s) = self.peek_char() {
+            if s.is_digit(10) {
+                let _ = self.next_char();
+                fractional_part += digit_to_num(s) as f64 * size;
+                size /= 10.0;
+            } else if s == 'e' || s == 'E' {
+                let _ = self.next_char();
+                match self.next_char() {
+                    Some('+') => {
+                        return self.parse_float_exponent(whole_part + fractional_part, true);
+                    }
+                    Some('-') => {
+                        return self.parse_float_exponent(whole_part + fractional_part, false);
+                    }
+                    _ => {
+                        return self.err(format!("Invalid float: expected + or - after e"));
+                    }
+                }
+                // pass;
+            } else if s.is_whitespace() || is_special(s) {
+                break;
+            } else {
+                return self.err(format!("Invalid character in float: {}", s));
+            }
+        }
+        Ok(Value::Double(whole_part + fractional_part))
+    }
+
+    fn parse_float_exponent(&mut self, number: f64, positive: bool) -> Result<Value, AdnotError> {
+        let mut exponent = 0i32;
+        while let Some(&s) = self.peek_char() {
+            if s.is_digit(10) {
+                let _ = self.next_char();
+                exponent = (exponent * 10) + digit_to_num(s) as i32;
+            } else if s.is_whitespace() || is_special(s) {
+                break;
+            } else {
+                return self.err(format!("Invalid character in float exponent: {}", s));
+            }
+        }
+        return Ok(Value::Double(
+            number * (if positive { 10f64 } else { 0.1f64 }).powi(exponent),
+        ));
     }
 
     fn parse_bare_word(&mut self, mut buf: String) -> Result<String, AdnotError> {

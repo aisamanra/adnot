@@ -56,6 +56,19 @@ fn it_parses_numbers_of_various_bases() {
 }
 
 #[test]
+fn it_parses_floats() {
+    let stuff = "[100.0 0.01 1.0e+2]";
+    assert_eq!(
+        Value::List(vec![
+            Value::Double(100.0),
+            Value::Double(0.01),
+            Value::Double(100.0)
+        ]),
+        Value::parse_string(stuff).unwrap()
+    );
+}
+
+#[test]
 fn it_parses_bare_words() {
     let stuff = "[foo bar_baz]";
     assert_eq!(
